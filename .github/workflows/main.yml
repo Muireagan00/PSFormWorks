@@ -1,5 +1,4 @@
 name: Deploy Vite (subfolder) to gh-pages
-
 on:
   push:
     branches: [ main ]
@@ -7,10 +6,9 @@ on:
 permissions:
   contents: write
 
-# Run all `run:` commands from the App/ directory
 defaults:
   run:
-    working-directory: ./App
+    working-directory: ./App  # <-- your Vite app lives here
 
 jobs:
   deploy:
@@ -18,17 +16,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Debug: confirm the folder and files exist
+      - name: Show repo tree
+        run: |
+          pwd
+          ls -la
+          echo "---- App dir ----"
+          ls -la
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-          cache-dependency-path: App/package-lock.json
 
-      - run: npm ci
-      - run: npm run build
+      # Use npm ci if a lockfile exists, otherwise fall back to npm install
+      - name: Install deps
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "Using npm ci"
+            npm ci
+          else
+            echo "No package-lock.json found, using npm install"
+            npm install
+          fi
 
-      # Publish the built files from App/dist to the gh-pages branch
-      - uses: peaceiris/actions-gh-pages@v3
+      - name: Build
+        run: npm run build
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./App/dist
